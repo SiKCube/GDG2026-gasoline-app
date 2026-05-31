@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "~/components
 import { Button } from "~/components/ui/button"
 import { MenuIcon } from "lucide-react"
 import FakeAd from "~/components/fake-ads"
+import { AdSlot } from "adkit-react"
 
 const FUEL_TABS: { value: FuelPreference; label: string }[] = [
   { value: "ESPECIAL", label: "Especial" },
@@ -217,7 +218,7 @@ export default function Home() {
           <span className="text-muted-foreground text-xs">· Toca un pin → ver ruta</span>
         </div>
 
-        <FakeAd />
+        <AdSlot theme="light" slot="fuel-bol-banner" aspectRatio="banner" price={300} />
 
         {/* Lista */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -348,7 +349,7 @@ export default function Home() {
                 )}
               </div>
 
-              <FakeAd width={"350"} height={"30"} />
+              <AdSlot theme="light" slot="fuel-bol-banner" aspectRatio="banner" price={300} />
 
             </DialogHeader>
             <aside className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">

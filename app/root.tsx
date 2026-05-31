@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root"
 import "./app.css"
 import AppLayout from "./components/layout/app-layout"
+import AdProvider from "./context/adProvider"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,9 +21,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <title>Fuel Bolivia</title>
         <Meta />
         <Links />
+        <script src="https://cdn.adkit.dev/v1.js" defer></script>
       </head>
       <body>
-        {children}
+        <AdProvider>
+          {children}
+        </AdProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

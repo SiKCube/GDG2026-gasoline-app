@@ -4,6 +4,7 @@ import Footer from "./footer/footer"
 import BottomNav from "./bottom-nav"
 import StationsProvider from "~/context/stations-provider"
 import ConfigCtxProvider from "~/context/configCtx"
+import ChatBot from "~/components/chatbot/chatbot"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
         <Footer />
         <BottomNav />
+        <ChatBot />
       </StationsProvider>
     </ConfigCtxProvider>
   )

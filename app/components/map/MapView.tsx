@@ -310,5 +310,9 @@ export default function MapView({
     }
   }, [biopetrolStations, genexStations, evStations, fuelType, userLat, userLon])
 
-  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+  return (
+    <div className="isolate" style={{ width: "100%", height: "100%" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+    </div>
+  )
 }
