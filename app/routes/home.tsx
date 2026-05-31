@@ -15,6 +15,9 @@ import { haversineDistance } from "~/utils/distance"
 import { evStationsBolivia } from "~/utils/evStationsBolivia"
 import { genexStationsStatic } from "~/utils/genexStationsStatic"
 import { bioPetrolStationsStatic } from "~/utils/bioPetrolStationsStatic"
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTrigger } from "~/components/ui/dialog"
+import { Button } from "~/components/ui/button"
+import { MenuIcon, XIcon } from "lucide-react"
 
 const FUEL_TABS: { value: FuelPreference; label: string }[] = [
   { value: "ESPECIAL", label: "Especial" },
@@ -37,6 +40,7 @@ export default function Home() {
   const { genexStationsData } = useGenexData()
   const userLocation = useUserLocation()
   const { config, setConfig } = useConfig()
+  const [open, setOpen] = useState<boolean>(false)
 
   const geoInputs = useMemo(
     () => [
@@ -111,10 +115,10 @@ export default function Home() {
     return genexStationsStatic.filter((s) =>
       s.fuels.some((f) => {
         const fu = f.toUpperCase()
-        if (config.fuelPreference === "GAS")     return fu.includes("GLP")
+        if (config.fuelPreference === "GAS") return fu.includes("GLP")
         if (config.fuelPreference === "ESPECIAL") return fu.includes("ESPECIAL")
-        if (config.fuelPreference === "PREMIUM")  return fu.includes("PREMIUM")
-        if (config.fuelPreference === "DIESEL")   return fu.includes("DIESEL")
+        if (config.fuelPreference === "PREMIUM") return fu.includes("PREMIUM")
+        if (config.fuelPreference === "DIESEL") return fu.includes("DIESEL")
         return false
       })
     )
@@ -126,8 +130,8 @@ export default function Home() {
       s.fuels.some((f) => {
         const fu = f.toUpperCase()
         if (config.fuelPreference === "ESPECIAL") return fu.includes("ESPECIAL")
-        if (config.fuelPreference === "PREMIUM")  return fu.includes("PREMIUM")
-        if (config.fuelPreference === "DIESEL")   return fu.includes("DIESEL")
+        if (config.fuelPreference === "PREMIUM") return fu.includes("PREMIUM")
+        if (config.fuelPreference === "DIESEL") return fu.includes("DIESEL")
         return false
       })
     )
@@ -150,81 +154,115 @@ export default function Home() {
 
   const fuelLabel = config.fuelPreference === "ESPECIAL" ? "G. Especial"
     : config.fuelPreference === "PREMIUM" ? "G. Premium"
-    : config.fuelPreference === "DIESEL" ? "Diesel"
-    : config.fuelPreference === "GAS" ? "Gas Natural"
-    : "Eléctrico"
+      : config.fuelPreference === "DIESEL" ? "Diesel"
+        : config.fuelPreference === "GAS" ? "Gas Natural"
+          : "Eléctrico"
 
   return (
     <div className="map-layout flex flex-col md:flex-row">
-      {/* Panel izquierdo */}
-      <aside className="w-full md:w-80 flex flex-col border-r shrink-0 overflow-hidden bg-background">
+      {/* Panel izquierdo laptop */}
+      <div className="hidden sm:block">
+        <aside className="w-full md:w-80 flex flex-col border-r shrink-0 overflow-hidden bg-background">
 
-        {/* Selector de combustible */}
-        <div className="p-3 border-b">
-          <Tabs
-            value={config.fuelPreference}
-            onValueChange={(v) => setConfig((prev) => ({ ...prev, fuelPreference: v as FuelPreference }))}
-          >
-            <TabsList className="grid grid-cols-5 w-full h-8">
-              {FUEL_TABS.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="text-xs px-0.5">
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+          {/* Selector de combustible */}
+          <div className="p-3 border-b">
+            <Tabs
+              value={config.fuelPreference}
+              onValueChange={(v) => setConfig((prev) => ({ ...prev, fuelPreference: v as FuelPreference }))}
+            >
+              <TabsList className="grid grid-cols-5 w-full h-8">
+                {FUEL_TABS.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className="text-xs px-0.5">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
 
-        {/* Estado */}
-        <div className="px-3 py-2 border-b bg-muted/30 space-y-1">
-          {userLocation.loading && <p className="text-xs text-muted-foreground">📍 Obteniendo ubicación GPS...</p>}
-          {userLocation.lat && <p className="text-xs text-green-600 font-medium">📍 Ubicación obtenida · mostrando por cercanía</p>}
-          {userLocation.error && <p className="text-xs text-amber-600">⚠️ {userLocation.error}</p>}
-          {config.fuelPreference !== "ELECTRICO" && totalStations > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {totalStations} estaciones de {fuelLabel}
-              {geocodedCount > 0 && geocodedCount < totalStations && ` · ${geocodedCount}/${totalStations} en mapa`}
-              {geocodedCount === totalStations && totalStations > 0 && " · todas en mapa ✓"}
-            </p>
-          )}
-        </div>
-
-        {/* Leyenda */}
-        <div className="px-3 py-2 border-b flex items-center gap-3 bg-muted/10 text-xs flex-wrap">
-          {config.fuelPreference !== "ELECTRICO" && config.fuelPreference !== "GAS" && (
-            <span className="flex items-center gap-1">
-              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%2316a34a' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
-                className="h-5" alt="" /> BioPetrol
-            </span>
-          )}
-          {config.fuelPreference !== "ELECTRICO" && (
-            <span className="flex items-center gap-1">
-              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%23ea580c' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
-                className="h-5" alt="" /> Genex
-            </span>
-          )}
-          {config.fuelPreference === "ELECTRICO" && (
-            <span className="flex items-center gap-1">
-              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%237c3aed' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
-                className="h-5" alt="" /> Cargador EV
-            </span>
-          )}
-          <span className="text-muted-foreground text-xs">· Toca un pin → ver ruta</span>
-        </div>
-
-        {/* Lista */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {unifiedStations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
-              <span className="text-4xl">{config.fuelPreference === "ELECTRICO" ? "⚡" : "⛽"}</span>
-              <p className="text-sm text-muted-foreground">
-                {`Sin estaciones de ${fuelLabel}. Presiona ↺ Actualizar.`}
+          {/* Estado */}
+          <div className="px-3 py-2 border-b bg-muted/30 space-y-1">
+            {userLocation.loading && <p className="text-xs text-muted-foreground">📍 Obteniendo ubicación GPS...</p>}
+            {userLocation.lat && <p className="text-xs text-green-600 font-medium">📍 Ubicación obtenida · mostrando por cercanía</p>}
+            {userLocation.error && <p className="text-xs text-amber-600">⚠️ {userLocation.error}</p>}
+            {config.fuelPreference !== "ELECTRICO" && totalStations > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {totalStations} estaciones de {fuelLabel}
+                {geocodedCount > 0 && geocodedCount < totalStations && ` · ${geocodedCount}/${totalStations} en mapa`}
+                {geocodedCount === totalStations && totalStations > 0 && " · todas en mapa ✓"}
               </p>
-            </div>
-          ) : (
-            unifiedStations.map((entry) => {
-              const isSelected = selectedId === entry.id
-              if (entry.source === "biopetrol") {
+            )}
+          </div>
+
+          {/* Leyenda */}
+          <div className="px-3 py-2 border-b flex items-center gap-3 bg-muted/10 text-xs flex-wrap">
+            {config.fuelPreference !== "ELECTRICO" && config.fuelPreference !== "GAS" && (
+              <span className="flex items-center gap-1">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%2316a34a' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
+                  className="h-5" alt="" /> BioPetrol
+              </span>
+            )}
+            {config.fuelPreference !== "ELECTRICO" && (
+              <span className="flex items-center gap-1">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%23ea580c' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
+                  className="h-5" alt="" /> Genex
+              </span>
+            )}
+            {config.fuelPreference === "ELECTRICO" && (
+              <span className="flex items-center gap-1">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%237c3aed' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
+                  className="h-5" alt="" /> Cargador EV
+              </span>
+            )}
+            <span className="text-muted-foreground text-xs">· Toca un pin → ver ruta</span>
+          </div>
+
+          {/* Lista */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {unifiedStations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
+                <span className="text-4xl">{config.fuelPreference === "ELECTRICO" ? "⚡" : "⛽"}</span>
+                <p className="text-sm text-muted-foreground">
+                  {`Sin estaciones de ${fuelLabel}. Presiona ↺ Actualizar.`}
+                </p>
+              </div>
+            ) : (
+              unifiedStations.map((entry) => {
+                const isSelected = selectedId === entry.id
+                if (entry.source === "biopetrol") {
+                  return (
+                    <div
+                      key={entry.id}
+                      id={`station-${entry.id}`}
+                      className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                      onClick={() => setSelectedId(entry.id)}
+                    >
+                      <Badge variant="outline" className="text-xs mb-1 text-green-700 border-green-300 bg-green-50">
+                        🟢 BioPetrol
+                      </Badge>
+                      <BioPetrolCard {...entry.data} fuelLabel={fuelLabel} distance={entry.distance} />
+                    </div>
+                  )
+                }
+                if (entry.source === "genex") {
+                  return (
+                    <div
+                      key={entry.id}
+                      id={`station-${entry.id}`}
+                      className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                      onClick={() => setSelectedId(entry.id)}
+                    >
+                      <Badge variant="outline" className="text-xs mb-1 text-orange-700 border-orange-300 bg-orange-50">
+                        🟠 Genex
+                      </Badge>
+                      <GenexCard
+                        {...entry.data}
+                        fuelType={config.fuelPreference !== "ELECTRICO" ? (config.fuelPreference as Exclude<FuelPreference, "ELECTRICO">) : undefined}
+                        distance={entry.distance}
+                      />
+                    </div>
+                  )
+                }
                 return (
                   <div
                     key={entry.id}
@@ -232,49 +270,17 @@ export default function Home() {
                     className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
                     onClick={() => setSelectedId(entry.id)}
                   >
-                    <Badge variant="outline" className="text-xs mb-1 text-green-700 border-green-300 bg-green-50">
-                      🟢 BioPetrol
-                    </Badge>
-                    <BioPetrolCard {...entry.data} fuelLabel={fuelLabel} distance={entry.distance} />
+                    <EVCard station={{ ...entry.data, distance: entry.distance }} />
                   </div>
                 )
-              }
-              if (entry.source === "genex") {
-                return (
-                  <div
-                    key={entry.id}
-                    id={`station-${entry.id}`}
-                    className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                    onClick={() => setSelectedId(entry.id)}
-                  >
-                    <Badge variant="outline" className="text-xs mb-1 text-orange-700 border-orange-300 bg-orange-50">
-                      🟠 Genex
-                    </Badge>
-                    <GenexCard
-                      {...entry.data}
-                      fuelType={config.fuelPreference !== "ELECTRICO" ? (config.fuelPreference as Exclude<FuelPreference, "ELECTRICO">) : undefined}
-                      distance={entry.distance}
-                    />
-                  </div>
-                )
-              }
-              return (
-                <div
-                  key={entry.id}
-                  id={`station-${entry.id}`}
-                  className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
-                  onClick={() => setSelectedId(entry.id)}
-                >
-                  <EVCard station={{ ...entry.data, distance: entry.distance }} />
-                </div>
-              )
-            })
-          )}
-        </div>
-      </aside>
+              })
+            )}
+          </div>
+        </aside>
+      </div>
 
       {/* Mapa */}
-      <div className="flex-1 min-h-[400px] relative">
+      <div className={`flex-1 min-h-[400px] relative ${open ? "hidden" : ""}`}>
         <ClientOnly
           fallback={
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm gap-2">
@@ -302,6 +308,133 @@ export default function Home() {
             Geocodificando {geocodedCount}/{totalStations} estaciones...
           </div>
         )}
+      </div>
+
+      {/* Panel mobile*/}
+      <div className="sm:hidden flex justify-center items-center">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger className="w-full" onClick={() => setOpen(!open)}>
+            <Button variant={"secondary"} className="w-full">
+              <MenuIcon />
+            </Button>
+          </DialogTrigger>
+          <DialogContent showCloseButton={true}>
+            <DialogHeader>
+              <div className="p-3 border-b">
+                <Tabs
+                  value={config.fuelPreference}
+                  onValueChange={(v) => setConfig((prev) => ({ ...prev, fuelPreference: v as FuelPreference }))}
+                >
+                  <TabsList className="grid grid-cols-5 w-full h-8">
+                    {FUEL_TABS.map((tab) => (
+                      <TabsTrigger key={tab.value} value={tab.value} className="text-xs px-0.5">
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              </div>
+              <div className="px-3 py-2 border-b bg-muted/30 space-y-1">
+                {userLocation.loading && <p className="text-xs text-muted-foreground">📍 Obteniendo ubicación GPS...</p>}
+                {userLocation.lat && <p className="text-xs text-green-600 font-medium">📍 Ubicación obtenida · mostrando por cercanía</p>}
+                {userLocation.error && <p className="text-xs text-amber-600">⚠️ {userLocation.error}</p>}
+                {config.fuelPreference !== "ELECTRICO" && totalStations > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {totalStations} estaciones de {fuelLabel}
+                    {geocodedCount > 0 && geocodedCount < totalStations && ` · ${geocodedCount}/${totalStations} en mapa`}
+                    {geocodedCount === totalStations && totalStations > 0 && " · todas en mapa ✓"}
+                  </p>
+                )}
+              </div>
+            </DialogHeader>
+            <aside className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">
+              {/* Estado */}
+
+              {/* Leyenda */}
+              <div className="px-3 py-2 border-b flex items-center gap-3 bg-muted/10 text-xs flex-wrap">
+                {config.fuelPreference !== "ELECTRICO" && config.fuelPreference !== "GAS" && (
+                  <span className="flex items-center gap-1">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%2316a34a' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
+                      className="h-5" alt="" /> BioPetrol
+                  </span>
+                )}
+                {config.fuelPreference !== "ELECTRICO" && (
+                  <span className="flex items-center gap-1">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%23ea580c' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
+                      className="h-5" alt="" /> Genex
+                  </span>
+                )}
+                {config.fuelPreference === "ELECTRICO" && (
+                  <span className="flex items-center gap-1">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 32 44'%3E%3Cpath d='M16 2C8.8 2 3 7.8 3 15c0 10.5 13 27 13 27S29 25.5 29 15C29 7.8 23.2 2 16 2z' fill='%237c3aed' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"
+                      className="h-5" alt="" /> Cargador EV
+                  </span>
+                )}
+                <span className="text-muted-foreground text-xs">· Toca un pin → ver ruta</span>
+              </div>
+
+              {/* Lista */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {unifiedStations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
+                    <span className="text-4xl">{config.fuelPreference === "ELECTRICO" ? "⚡" : "⛽"}</span>
+                    <p className="text-sm text-muted-foreground">
+                      {`Sin estaciones de ${fuelLabel}. Presiona ↺ Actualizar.`}
+                    </p>
+                  </div>
+                ) : (
+                  unifiedStations.map((entry) => {
+                    const isSelected = selectedId === entry.id
+                    if (entry.source === "biopetrol") {
+                      return (
+                        <div
+                          key={entry.id}
+                          id={`station-${entry.id}`}
+                          className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                          onClick={() => setSelectedId(entry.id)}
+                        >
+                          <Badge variant="outline" className="text-xs mb-1 text-green-700 border-green-300 bg-green-50">
+                            🟢 BioPetrol
+                          </Badge>
+                          <BioPetrolCard {...entry.data} fuelLabel={fuelLabel} distance={entry.distance} />
+                        </div>
+                      )
+                    }
+                    if (entry.source === "genex") {
+                      return (
+                        <div
+                          key={entry.id}
+                          id={`station-${entry.id}`}
+                          className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                          onClick={() => setSelectedId(entry.id)}
+                        >
+                          <Badge variant="outline" className="text-xs mb-1 text-orange-700 border-orange-300 bg-orange-50">
+                            🟠 Genex
+                          </Badge>
+                          <GenexCard
+                            {...entry.data}
+                            fuelType={config.fuelPreference !== "ELECTRICO" ? (config.fuelPreference as Exclude<FuelPreference, "ELECTRICO">) : undefined}
+                            distance={entry.distance}
+                          />
+                        </div>
+                      )
+                    }
+                    return (
+                      <div
+                        key={entry.id}
+                        id={`station-${entry.id}`}
+                        className={`transition-all rounded-lg ${isSelected ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+                        onClick={() => setSelectedId(entry.id)}
+                      >
+                        <EVCard station={{ ...entry.data, distance: entry.distance }} />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </aside>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
