@@ -43,11 +43,12 @@ FuelHelper/
 
 ## 📸 Imágenes Referenciales
 
-> [Aquí irán capturas del dashboard, mapas de estaciones, listados de combustible, etc.]
->
-> ![Home](./docs/images/home.png)
-> ![Mapa de Estaciones](./docs/images/map.png)
-> ![Listado de EV](./docs/images/ev-list.png)
+> ![Ruta mas rapida](/public//screenshots//Screenshot%202026-05-31%20052557.png)
+> ![Asistente](/public//screenshots//Screenshot%202026-05-31%20052623.png)
+> ![Listado de EV](/public//screenshots/Screenshot%202026-05-31%20052702.png)
+> ![Listado de combustible especial](/public//screenshots//Screenshot%202026-05-31%20052710.png)
+
+> Video Demo: https://youtu.be/lz_aga2mGpA
 
 ## 🚀 Instrucciones de Ejecución
 
