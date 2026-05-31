@@ -11,4 +11,5 @@ export default [
   route("/api/biopetrol", "./routes/api/getBioPetrol.ts"),
   route("/api/genex", "./routes/api/getGenex.ts"),
   route("/api/evcharging", "./routes/api/getEvCharging.ts"),
+  route("/api/tts", "./routes/api/tts.ts"),
 ] satisfies RouteConfig;

@@ -6,6 +6,7 @@ import type { GenexStationStatic } from "~/utils/genexStationsStatic"
 import type { BioPetrolStationStatic } from "~/utils/bioPetrolStationsStatic"
 import type { EVStationBolivia } from "~/utils/evStationsBolivia"
 import type { FuelPreference } from "~/context/configCtx"
+import type { HighlightedStation } from "~/context/chatbotMapCtx"
 import { haversineDistance, formatDistance } from "~/utils/distance"
 
 // --- Marcadores tipo pin (gota invertida con letra) ---
@@ -47,6 +48,24 @@ const genexPin = makePinIcon("#ea580c", "G")
 const evPin = makePinIcon("#7c3aed", "EV")
 const userPin = makeUserPin()
 
+function makeHighlightPin() {
+  return L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="52" viewBox="0 0 38 52"
+               style="filter:drop-shadow(0 3px 8px rgba(245,158,11,0.75))">
+      <path d="M19 2C10.2 2 3 9.2 3 18c0 12 16 32 16 32S35 30 35 18C35 9.2 27.8 2 19 2z"
+            fill="#f59e0b" stroke="white" stroke-width="2.5"/>
+      <circle cx="19" cy="18" r="9" fill="white"/>
+      <text x="19" y="23" text-anchor="middle" font-size="14" fill="#f59e0b"
+            font-family="system-ui,sans-serif" font-weight="700">★</text>
+    </svg>`,
+    className: "",
+    iconSize: [38, 52],
+    iconAnchor: [19, 52],
+    popupAnchor: [0, -54],
+  })
+}
+const highlightPin = makeHighlightPin()
+
 // --- OSRM routing (routing libre basado en OpenStreetMap) ---
 async function fetchOSRMRoute(
   fromLat: number,
@@ -74,6 +93,7 @@ export interface MapViewProps {
   userLon: number | null
   fuelType: FuelPreference
   onStationClick?: (id: string) => void
+  highlightedStations?: HighlightedStation[]
 }
 
 export default function MapView({
@@ -84,12 +104,14 @@ export default function MapView({
   userLon,
   fuelType,
   onStationClick,
+  highlightedStations,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const stationLayerRef = useRef<L.LayerGroup | null>(null)
   const userLayerRef = useRef<L.LayerGroup | null>(null)
   const routeLayerRef = useRef<L.Polyline | null>(null)
+  const highlightLayerRef = useRef<L.LayerGroup | null>(null)
 
   // Ref siempre actualizado con la ubicación más reciente (para los click handlers)
   const locationRef = useRef({ userLat, userLon })
@@ -108,6 +130,7 @@ export default function MapView({
 
     stationLayerRef.current = L.layerGroup().addTo(map)
     userLayerRef.current = L.layerGroup().addTo(map)
+    highlightLayerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
 
     // Limpiar ruta al hacer click en el mapa (fuera de marcador)
@@ -123,6 +146,7 @@ export default function MapView({
       mapRef.current = null
       stationLayerRef.current = null
       userLayerRef.current = null
+      highlightLayerRef.current = null
       routeLayerRef.current = null
     }
   }, [])
@@ -309,6 +333,39 @@ export default function MapView({
       })
     }
   }, [biopetrolStations, genexStations, evStations, fuelType, userLat, userLon])
+
+  // Pines dorados para estaciones recomendadas por el chatbot
+  useEffect(() => {
+    const map = mapRef.current
+    const layer = highlightLayerRef.current
+    if (!map || !layer) return
+    layer.clearLayers()
+    if (!highlightedStations?.length) return
+
+    const bounds: [number, number][] = []
+    for (const s of highlightedStations) {
+      const popup = `
+        <div style="min-width:190px;font-family:system-ui,sans-serif">
+          <p style="font-size:13px;font-weight:700;margin:0 0 4px">${s.name}</p>
+          <p style="font-size:11px;color:#92400e;margin:2px 0">⛽ ${s.fuelInfo}</p>
+          ${s.waitTime ? `<p style="font-size:11px;color:#6b7280;margin:2px 0">⏱ ${s.waitTime}</p>` : ""}
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}" target="_blank"
+             style="display:block;margin-top:6px;background:#f59e0b;color:white;text-align:center;padding:5px 8px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">
+            🗺️ Cómo llegar
+          </a>
+        </div>`
+      L.marker([s.lat, s.lon], { icon: highlightPin, zIndexOffset: 1000 })
+        .bindPopup(popup, { maxWidth: 220 })
+        .addTo(layer)
+      bounds.push([s.lat, s.lon])
+    }
+
+    if (bounds.length === 1) {
+      map.setView(bounds[0], Math.max(map.getZoom(), 14))
+    } else if (bounds.length > 1) {
+      map.fitBounds(bounds as L.LatLngBoundsLiteral, { padding: [70, 70], maxZoom: 14 })
+    }
+  }, [highlightedStations])
 
   return (
     <div className="isolate" style={{ width: "100%", height: "100%" }}>

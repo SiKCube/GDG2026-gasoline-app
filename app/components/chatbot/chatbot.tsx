@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { Bot, MessageCircle, Send, User, X } from "lucide-react"
+import { Bot, Loader2, MapPin, MessageCircle, Send, User, Volume2, VolumeX, X } from "lucide-react"
 import { Drawer, DrawerContent } from "~/components/ui/drawer"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
@@ -7,15 +7,16 @@ import { useGenexData } from "~/context/genexCtx"
 import { useBioPetrolData } from "~/context/biopetrolCtx"
 import { useUserLocation } from "~/context/locationCtx"
 import { useConfig } from "~/context/configCtx"
+import { useChatbotMap, type HighlightedStation } from "~/context/chatbotMapCtx"
 import { processMessage, type StationResult } from "~/utils/chatbot-engine"
-import { formatDistance } from "~/utils/distance"
-import { AdSlot } from "adkit-react"
+import { genexStationsStatic } from "~/utils/genexStationsStatic"
+import { bioPetrolStationsStatic } from "~/utils/bioPetrolStationsStatic"
 
 interface Message {
   id: number
   role: "bot" | "user"
   text: string
-  stations?: StationResult[]
+  mappedCount?: number   // cuántas estaciones se marcaron en el mapa
   quickReplies?: string[]
 }
 
@@ -31,46 +32,93 @@ const WELCOME: Message = {
   ],
 }
 
-function StationCard({ s }: { s: StationResult }) {
-  const openMaps = () => {
-    if (!s.lat || !s.lon) return
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`, "_blank")
-  }
+function normalize(s: string) {
+  return s
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
 
-  return (
-    <div className="bg-background border rounded-lg p-2.5 text-xs space-y-1 mt-1.5 shadow-sm">
-      <p className="font-semibold text-sm leading-tight">{s.name}</p>
-      <p className="text-muted-foreground truncate">{s.address}</p>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-        {s.distance !== undefined && (
-          <span className="font-medium text-blue-600">{formatDistance(s.distance)}</span>
-        )}
-        <span className="text-green-700">{s.fuelInfo}</span>
-        {s.waitTime && <span className="text-muted-foreground">⏱ {s.waitTime}</span>}
-      </div>
-      {s.lat && s.lon && (
-        <Button size="sm" variant="outline" className="h-6 text-xs px-2 mt-0.5" onClick={openMaps}>
-          Ir aquí
-        </Button>
-      )}
-    </div>
-  )
+function resolveCoords(station: StationResult): { lat: number; lon: number } | null {
+  if (station.lat != null && station.lon != null) {
+    return { lat: station.lat, lon: station.lon }
+  }
+  const nn = normalize(station.name)
+  const all = [
+    ...genexStationsStatic.map(s => ({ lat: s.lat, lon: s.lon, name: s.name })),
+    ...bioPetrolStationsStatic.map(s => ({ lat: s.lat, lon: s.lon, name: s.name })),
+  ]
+  const match = all.find(s => {
+    const sn = normalize(s.name)
+    const words = nn.split(" ").filter(w => w.length > 3)
+    return sn === nn || sn.includes(nn) || nn.includes(sn) || words.some(w => sn.includes(w))
+  })
+  return match ? { lat: match.lat, lon: match.lon } : null
+}
+
+function stationsToHighlighted(stations: StationResult[]): HighlightedStation[] {
+  return stations.flatMap(s => {
+    const coords = resolveCoords(s)
+    if (!coords) return []
+    return [{ ...coords, name: s.name, fuelInfo: s.fuelInfo, waitTime: s.waitTime }]
+  })
 }
 
 export default function ChatBot() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([WELCOME])
   const [input, setInput] = useState("")
+  const [muted, setMuted] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const { genexStationsData } = useGenexData()
   const { bioPetrolStationsData } = useBioPetrolData()
   const location = useUserLocation()
   const { config } = useConfig()
+  const { setHighlightedStations } = useChatbotMap()
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
+    }
+  }
+
+  const speak = async (text: string) => {
+    if (muted) return
+    stopAudio()
+    setSpeaking(true)
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      })
+      if (!res.ok) { setSpeaking(false); return }
+      const { audioContent } = await res.json()
+      const audio = new Audio(`data:audio/wav;base64,${audioContent}`)
+      audioRef.current = audio
+      audio.onended = () => setSpeaking(false)
+      audio.onerror = () => setSpeaking(false)
+      audio.play()
+    } catch {
+      setSpeaking(false)
+    }
+  }
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  useEffect(() => {
+    if (open) speak(WELCOME.text)
+    else stopAudio()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const send = (text: string) => {
     if (!text.trim()) return
@@ -82,14 +130,25 @@ export default function ChatBot() {
       { lat: location.lat, lon: location.lon },
       config.fuelPreference
     )
+
+    let mappedCount = 0
+    if (result.stations?.length) {
+      const highlighted = stationsToHighlighted(result.stations)
+      setHighlightedStations(highlighted)
+      mappedCount = highlighted.length
+      // Cierra el drawer para que el usuario vea el mapa
+      if (mappedCount > 0) setTimeout(() => setOpen(false), 900)
+    }
+
     const botMsg: Message = {
       id: Date.now() + 1,
       role: "bot",
       text: result.text,
-      stations: result.stations,
+      mappedCount: mappedCount || undefined,
       quickReplies: result.quickReplies,
     }
     setMessages(prev => [...prev, userMsg, botMsg])
+    speak(result.text)
     setInput("")
   }
 
@@ -111,16 +170,26 @@ export default function ChatBot() {
               <Bot className="w-5 h-5 text-primary" />
               <span className="font-semibold text-sm">Asistente de Combustible</span>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="text-muted-foreground hover:text-foreground p-1"
-              aria-label="Cerrar"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {speaking && !muted && (
+                <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              )}
+              <button
+                onClick={() => { setMuted(m => !m); stopAudio(); setSpeaking(false) }}
+                className="text-muted-foreground hover:text-foreground p-1"
+                aria-label={muted ? "Activar voz" : "Silenciar voz"}
+              >
+                {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground p-1"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-
-          <AdSlot theme="light" slot="fuel-bol-banner" aspectRatio="banner" price={300} />
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
@@ -146,7 +215,15 @@ export default function ChatBot() {
                     {msg.text}
                   </div>
 
-                  {msg.stations?.map((s, i) => <StationCard key={i} s={s} />)}
+                  {msg.mappedCount != null && msg.mappedCount > 0 && (
+                    <button
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 hover:bg-amber-100 transition-colors"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      {msg.mappedCount} estación{msg.mappedCount > 1 ? "es" : ""} marcada{msg.mappedCount > 1 ? "s" : ""} en el mapa →
+                    </button>
+                  )}
 
                   {msg.quickReplies && (
                     <div className="flex flex-wrap gap-1 mt-0.5">

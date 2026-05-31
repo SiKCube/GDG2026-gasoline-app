@@ -10,6 +10,7 @@ import { useBioPetrolData } from "~/context/biopetrolCtx"
 import { useConfig, type FuelPreference } from "~/context/configCtx"
 import { useGenexData } from "~/context/genexCtx"
 import { useUserLocation } from "~/context/locationCtx"
+import { useChatbotMap } from "~/context/chatbotMapCtx"
 import { useProgressiveGeocode } from "~/hooks/useProgressiveGeocode"
 import { haversineDistance } from "~/utils/distance"
 import { evStationsBolivia } from "~/utils/evStationsBolivia"
@@ -43,6 +44,7 @@ export default function Home() {
   const userLocation = useUserLocation()
   const { config, setConfig } = useConfig()
   const [open, setOpen] = useState<boolean>(false)
+  const { highlightedStations } = useChatbotMap()
 
   const geoInputs = useMemo(
     () => [
@@ -300,6 +302,7 @@ export default function Home() {
               userLon={userLocation.lon}
               fuelType={config.fuelPreference}
               onStationClick={setSelectedId}
+              highlightedStations={highlightedStations}
             />
           )}
         </ClientOnly>
