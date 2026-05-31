@@ -18,6 +18,7 @@ import { bioPetrolStationsStatic } from "~/utils/bioPetrolStationsStatic"
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTrigger } from "~/components/ui/dialog"
 import { Button } from "~/components/ui/button"
 import { MenuIcon, XIcon } from "lucide-react"
+import Ads from "~/components/ads"
 
 const FUEL_TABS: { value: FuelPreference; label: string }[] = [
   { value: "ESPECIAL", label: "Especial" },
@@ -216,6 +217,23 @@ export default function Home() {
           <span className="text-muted-foreground text-xs">· Toca un pin → ver ruta</span>
         </div>
 
+        <Ads
+          scriptCode={`
+            <script>
+  atOptions = {
+    'key' : 'dcf183e15f08737fff98d0038d901adf',
+    'format' : 'iframe',
+    'height' : 50,
+    'width' : 320,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/dcf183e15f08737fff98d0038d901adf/invoke.js"></script>
+            `}
+          height={50}
+          width={320}
+        />
+
         {/* Lista */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
           {unifiedStations.length === 0 ? (
@@ -344,9 +362,25 @@ export default function Home() {
                   </p>
                 )}
               </div>
+              <Ads
+                scriptCode={`
+            <script>
+  atOptions = {
+    'key' : 'dcf183e15f08737fff98d0038d901adf',
+    'format' : 'iframe',
+    'height' : 50,
+    'width' : 320,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/dcf183e15f08737fff98d0038d901adf/invoke.js"></script>
+            `}
+                height={50}
+                width={320}
+              />
+
             </DialogHeader>
             <aside className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">
-              {/* Estado */}
 
               {/* Leyenda */}
               <div className="px-3 py-2 border-b flex items-center gap-3 bg-muted/10 text-xs flex-wrap">
