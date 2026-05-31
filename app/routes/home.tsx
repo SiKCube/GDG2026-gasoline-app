@@ -18,7 +18,7 @@ import { bioPetrolStationsStatic } from "~/utils/bioPetrolStationsStatic"
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "~/components/ui/dialog"
 import { Button } from "~/components/ui/button"
 import { MenuIcon } from "lucide-react"
-import { AdBanner, configureAds } from "@adsterra-ad/react"
+import FakeAd from "~/components/fake-ads"
 
 const FUEL_TABS: { value: FuelPreference; label: string }[] = [
   { value: "ESPECIAL", label: "Especial" },
@@ -27,10 +27,6 @@ const FUEL_TABS: { value: FuelPreference; label: string }[] = [
   { value: "GAS", label: "🔵 Gas" },
   { value: "ELECTRICO", label: "⚡ EV" },
 ]
-
-configureAds({
-  "320x50": "dcf183e15f08737fff98d0038d901adf"
-})
 
 // Tipos de combustible que BioPetrol soporta
 const BIOPETROL_FUELS: FuelPreference[] = ["ESPECIAL", "PREMIUM", "DIESEL"]
@@ -221,6 +217,8 @@ export default function Home() {
           <span className="text-muted-foreground text-xs">· Toca un pin → ver ruta</span>
         </div>
 
+        <FakeAd />
+
         {/* Lista */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
           {unifiedStations.length === 0 ? (
@@ -350,10 +348,7 @@ export default function Home() {
                 )}
               </div>
 
-              <AdBanner
-                format="320x50"
-                adLabel="Ads"
-              />
+              <FakeAd width={"350"} height={"30"} />
 
             </DialogHeader>
             <aside className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">
