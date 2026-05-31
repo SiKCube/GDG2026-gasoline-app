@@ -4,6 +4,8 @@
 
 FuelHelper es una aplicación web moderna construida con **Remix** y **React** que ayuda a los usuarios a ubicar y comparar gasolineras, estaciones de carga eléctrica (EV), puntos de biocombustible y agencias de venta de combustible en Bolivia. Proporciona mapas interactivos, búsqueda por ubicación y filtrado de estaciones.
 
+**Esta desplegado en Vercel:** https://gdg-2026-gasoline-app.vercel.app/
+
 ## 🏗️ Arquitectura
 
 ```
